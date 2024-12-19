@@ -15,11 +15,12 @@ engine = create_engine(sqlite_url, connect_args=connect_args)
 
 class TweetBase(SQLModel):  
     tweet_data: str = Field(index=True)
-    #tweet_media_ids: ARRAY = Field()
+    #tweet_media_ids: str | None = Field()
+    user_id: Optional[int] = None
 
     
 class Tweet(TweetBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     user: "User" = Relationship(back_populates="tweet")
 

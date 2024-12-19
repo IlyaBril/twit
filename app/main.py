@@ -19,6 +19,8 @@ templates = Jinja2Templates(directory="templates")
 
 app = FastAPI()
 
+
+
 app.include_router(app_router,  prefix="/api")
 
 app.mount("/css", StaticFiles(directory="templates/css"), name="css")

@@ -7,12 +7,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+
 app_router = APIRouter()
 
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-
+logging.basicConfig(filename='myapp.log')
 
 @app_router.get("/users/me")
 async def read_item(request: Request):
@@ -34,18 +35,17 @@ async def read_item(request: Request):
 
 
 @app_router.post("/tweets")
-def tweet_add(request: Request, session: SessionDep):
-    print('test')
+def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
+
     api_key = request.headers["api-key"]
-    tweet_data = request.form
-    tweet_dat = tweet_data["tweet_data"]
-    user_id = session.execute(select(User.id).where(User.api_key==api_key)).fetchone()
-    logger.info('user id {}'.format(user_id))
-    tweet_create = TweetCreate(user_id=user_id, tweet_data=tweet_dat)
-    session.add(tweet_create)
+    #api_key = 'test'
+    user_id = session.scalars(select(User.id).where(User.api_key==api_key)).one()
+    tweet.user_id = user_id
+    db_tweet = Tweet.model_validate(tweet)
+    session.add(db_tweet)
     session.commit()
-    session.refresh(tweet_create)
-    return {"result": "true", "tweet_id": 1}
+    session.refresh(db_tweet)
+    return {"result": "true", "tweet_id": db_tweet.user_id}
 
 
 @app_router.get("/tweets")
@@ -111,25 +111,22 @@ async def tweets_get():
 #    return {"result": "true"}
 
 
-
-
-
-# @app.post("/users/")
-# def create_hero(user: User, session: SessionDep) -> User:
-#     session.add(user)
-#     session.commit()
-#     session.refresh(user)
-#     return user
+@app_router.post("/users/")
+def create_hero(user: User, session: SessionDep) -> User:
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 #
 #
-# @app.get("/users/")
-# def get_users(session: SessionDep) -> list[User]:
-#     users = session.exec(select(User)).all()
-#     return users
+@app_router.get("/users/")
+def get_users(session: SessionDep) -> list[User]:
+    users = session.exec(select(User)).all()
+    return users
 #
 #
 #
-# @router.post("/app/users/")
+# @app_router.post("/users/")
 # async def user_follow_add():
 #     return {"result": "all users"}
 #
