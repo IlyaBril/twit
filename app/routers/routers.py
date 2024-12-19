@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Request, Header
-from ..models.models import User, SessionDep
+from ..models.models import User, Tweet, TweetCreate, SessionDep
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -33,9 +33,51 @@ async def read_item(request: Request):
             }
 
 
-# @app.post("/app/tweets")
-# async def tweet_add() -> dict:
-#     return {"result": "true", "tweet_id": "int"}
+@app_router.post("/tweets")
+def tweet_add(request: Request, session: SessionDep):
+    print('test')
+    api_key = request.headers["api-key"]
+    tweet_data = request.form
+    tweet_dat = tweet_data["tweet_data"]
+    user_id = session.execute(select(User.id).where(User.api_key==api_key)).fetchone()
+    logger.info('user id {}'.format(user_id))
+    tweet_create = TweetCreate(user_id=user_id, tweet_data=tweet_dat)
+    session.add(tweet_create)
+    session.commit()
+    session.refresh(tweet_create)
+    return {"result": "true", "tweet_id": 1}
+
+
+@app_router.get("/tweets")
+async def tweets_get():
+    return {
+        "result": "true2",
+        "tweets": [
+            {
+                "id": 1,
+                "content": "hi",
+                "attachements": [],
+                "author": {
+                    "id": 1,
+                    "name": "test"
+                    },
+                "likes":[
+                    ]
+                }
+            ]
+        }
+
+
+
+
+
+# @app.post("/users/")
+# def create_hero(user: User, session: SessionDep) -> User:
+#     session.add(user)
+#     session.commit()
+#     session.refresh(user)
+#     return user
+#
 
 
 #@app.post("/app/medias")
@@ -69,18 +111,7 @@ async def read_item(request: Request):
 #    return {"result": "true"}
 
 
-#@app.get("/app/tweets")
-#async def tweets_get():
-#    """
-#    {“result”: true,
-#    "tweets": [{"id": int, "content": string, "attachments" [link_1, // relative?link_2, ...],
-#                "author": {"id": int, "name": string}
-#    “likes”: [{“user_id”: int, “name”: string}]}, ..., ]
-#    }
-#
-#    in error: {“result”: false,  “error_type”: str, “error_message”: str}
-#    """
-#    return {"result": "true2"}
+
 
 
 # @app.post("/users/")
