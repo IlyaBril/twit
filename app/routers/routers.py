@@ -1,11 +1,29 @@
 import logging
-
-from fastapi import APIRouter, Request, Header
-from ..models.models import User, Tweet, TweetCreate, SessionDep
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from typing import Annotated
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+from fastapi import (APIRouter,
+                     Request,
+                     Header,
+                     Depends,
+                     UploadFile)
+
+from ..models.models import (User,
+                             Tweet,
+                             TweetCreate,
+                             TweetPublic,
+                             Media,
+                             MediaCreate,
+                             SessionDep)
+
+from sqlmodel import (Field,
+                      Session,
+                      SQLModel,
+                      create_engine,
+                      select)
+
 
 
 app_router = APIRouter()
@@ -34,59 +52,66 @@ async def read_item(request: Request):
             }
 
 
+
 @app_router.post("/tweets")
 def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
 
-    api_key = request.headers["api-key"]
-    #api_key = 'test'
+    #api_key = request.headers["api-key"]
+    api_key = 'test'
     user_id = session.scalars(select(User.id).where(User.api_key==api_key)).one()
     tweet.user_id = user_id
+    tweet.content = tweet.tweet_data
     db_tweet = Tweet.model_validate(tweet)
     session.add(db_tweet)
     session.commit()
     session.refresh(db_tweet)
-    return {"result": "true", "tweet_id": db_tweet.user_id}
+    return {"result": "true", "tweet_id": db_tweet.id}
 
 
-@app_router.get("/tweets")
-async def tweets_get():
-    return {
-        "result": "true2",
-        "tweets": [
-            {
-                "id": 1,
-                "content": "hi",
-                "attachements": [],
-                "author": {
-                    "id": 1,
-                    "name": "test"
-                    },
-                "likes":[
-                    ]
-                }
-            ]
-        }
+@app_router.get("/tweets", response_model=list[TweetPublic])
+#@app_router.get("/tweets")
+async def tweets_get(*, session: SessionDep):
+    tweets = session.scalars(select(Tweet)).all()
+    return tweets
+    #return {"result": "true", "tweets": tweets}
+
+#        {
+#        "result": "true",
+#        "tweets": [
+#            {
+#                "id": 1,
+#                "content": "hi",
+#                "attachements": [],
+#                "author": {
+#                    "id": 1,
+#                    "name": "test"
+#                    },
+#                "likes":[
+#                    ]
+#                }
+#            ]
+#        }
 
 
+@app_router.post("/medias")
+async def media_add(session: SessionDep,
+                    request: Request,
+                    file: UploadFile | None = None) -> dict:
+    # api_key = request.headers["api-key"]
+    api_key = 'test'
+
+    media_file = await file.read()
+    media_f = Media(image = media_file)
+
+    session.add(media_f)
+    session.commit()
+    session.refresh(media_f)
+
+    return {"result": "true",
+            "media_id": media_f.media_id}
 
 
-
-# @app.post("/users/")
-# def create_hero(user: User, session: SessionDep) -> User:
-#     session.add(user)
-#     session.commit()
-#     session.refresh(user)
-#     return user
-#
-
-
-#@app.post("/app/medias")
-#async def media_add() -> dict:
-#    return {"result": "true",
-#            "media_id": "int"}
-
-
-#@app.delete("/app/tweets/<id>")
+#@app.delete("tweets/<id>")
 #async def tweet_delete(id) -> dict:
 #    return {"result": "true"}
 
@@ -112,7 +137,7 @@ async def tweets_get():
 
 
 @app_router.post("/users/")
-def create_hero(user: User, session: SessionDep) -> User:
+def create_user(user: User, session: SessionDep) -> User:
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -123,12 +148,7 @@ def create_hero(user: User, session: SessionDep) -> User:
 def get_users(session: SessionDep) -> list[User]:
     users = session.exec(select(User)).all()
     return users
-#
-#
-#
-# @app_router.post("/users/")
-# async def user_follow_add():
-#     return {"result": "all users"}
+
 #
 #
 #

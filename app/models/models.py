@@ -1,36 +1,10 @@
-from sqlmodel import JSON, SQLModel, Field, Column, Relationship, ARRAY
+from sqlmodel import JSON, SQLModel, Field, Column, Relationship, ARRAY, Integer
 from sqlmodel import Session, create_engine, select
-from typing import Optional, List, Annotated
+from typing import Optional, Annotated, List
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 
-
-
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, connect_args=connect_args)
-
-
-class TweetBase(SQLModel):  
-    tweet_data: str = Field(index=True)
-    #tweet_media_ids: str | None = Field()
-    user_id: Optional[int] = None
-
-    
-class Tweet(TweetBase, table=True):
-    id: int = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
-    user: "User" = Relationship(back_populates="tweet")
-
-
-class TweetCreate(TweetBase):
-    pass
-
-
-class TweetPublic(TweetBase):
-    id: int
+engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
 
 
 class User(SQLModel, table=True):
@@ -38,7 +12,7 @@ class User(SQLModel, table=True):
     id: int = Field(primary_key=True)
     name: str = Field(index=True)
     api_key: str = Field()
-    tweet: Tweet = Relationship(back_populates="user")
+    tweet: "Tweet" = Relationship(back_populates="author")
 
     class Config:
         schema_extra = {
@@ -46,6 +20,45 @@ class User(SQLModel, table=True):
                 "name": "name"
             }
         }
+
+
+class TweetBase(SQLModel):
+    content: Optional[str] = Field(index=True)
+
+
+class Tweet(TweetBase, table=True):
+    __tablename__ = "tweet"
+    id: int = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    author: "User" = Relationship(back_populates="tweet")
+    tweet_media_ids: List[int] = Field(sa_column=Column(ARRAY(Integer)))
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class TweetCreate(TweetBase):
+    user_id: Optional[int] = None
+    tweet_data: str | None = None
+    content: str | None = None
+    tweet_media_ids: List[int]
+
+
+class TweetPublic(TweetBase):
+    author : User
+
+
+class MediaBase(SQLModel):
+    image: bytes | None = None
+
+
+class Media(MediaBase, table=True):
+    media_id: int = Field(default=None, primary_key=True)
+    image: bytes = Field(default=None)
+
+
+class MediaCreate(MediaBase):
+    pass
 
 
 def create_db_and_tables():
