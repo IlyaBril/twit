@@ -7,12 +7,16 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
 
 
-class User(SQLModel, table=True):
+class UserBase(SQLModel):
+    name: str = Field(index=True)
+
+
+class User(UserBase, table=True):
     __tablename__ = "user"
     id: int = Field(primary_key=True)
-    name: str = Field(index=True)
     api_key: str = Field()
     tweet: "Tweet" = Relationship(back_populates="author")
+
 
     class Config:
         schema_extra = {
@@ -22,8 +26,13 @@ class User(SQLModel, table=True):
         }
 
 
+class UserPublic(UserBase):
+    id: int
+
+
 class TweetBase(SQLModel):
     content: Optional[str] = Field(index=True)
+    tweet_media_ids: List[int] = Field(sa_column=Column(ARRAY(Integer)))
 
 
 class Tweet(TweetBase, table=True):
@@ -31,7 +40,6 @@ class Tweet(TweetBase, table=True):
     id: int = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     author: "User" = Relationship(back_populates="tweet")
-    tweet_media_ids: List[int] = Field(sa_column=Column(ARRAY(Integer)))
 
     class Config:
         arbitrary_types_allowed = True
@@ -45,7 +53,12 @@ class TweetCreate(TweetBase):
 
 
 class TweetPublic(TweetBase):
-    author : User
+    author : UserPublic
+
+
+class TweetResponse(TweetPublic):
+    result: str | None
+    items : TweetPublic
 
 
 class MediaBase(SQLModel):

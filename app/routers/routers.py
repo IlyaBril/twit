@@ -1,5 +1,5 @@
 import logging
-from typing import Annotated
+from typing import Annotated, Union
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -14,6 +14,7 @@ from ..models.models import (User,
                              Tweet,
                              TweetCreate,
                              TweetPublic,
+                             TweetResponse,
                              Media,
                              MediaCreate,
                              SessionDep)
@@ -68,29 +69,13 @@ def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
     return {"result": "true", "tweet_id": db_tweet.id}
 
 
-@app_router.get("/tweets", response_model=list[TweetPublic])
+@app_router.get("/tweets", response_model=dict[str, Union[list[TweetPublic], str]])
 #@app_router.get("/tweets")
 async def tweets_get(*, session: SessionDep):
-    tweets = session.scalars(select(Tweet)).all()
-    return tweets
-    #return {"result": "true", "tweets": tweets}
-
-#        {
-#        "result": "true",
-#        "tweets": [
-#            {
-#                "id": 1,
-#                "content": "hi",
-#                "attachements": [],
-#                "author": {
-#                    "id": 1,
-#                    "name": "test"
-#                    },
-#                "likes":[
-#                    ]
-#                }
-#            ]
-#        }
+    tweets = session.scalars(select(Tweet, User).join(User)).all()
+    #tweets = session.scalars(select(Tweet)).all()
+    #return tweets
+    return {"result": "true", "tweets": tweets}
 
 
 @app_router.post("/medias")
