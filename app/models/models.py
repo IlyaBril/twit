@@ -16,6 +16,7 @@ class User(UserBase, table=True):
     id: int = Field(primary_key=True)
     api_key: str = Field()
     tweet: "Tweet" = Relationship(back_populates="author")
+    like: "Like" = Relationship(back_populates="user")
 
 
     class Config:
@@ -31,6 +32,7 @@ class UserPublic(UserBase):
 
 
 class TweetBase(SQLModel):
+    id: Optional[int] = None
     content: Optional[str] = Field(index=True)
     tweet_media_ids: List[int] = Field(sa_column=Column(ARRAY(Integer)))
 
@@ -39,7 +41,9 @@ class Tweet(TweetBase, table=True):
     __tablename__ = "tweet"
     id: int = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
+
     author: "User" = Relationship(back_populates="tweet")
+    like: "Like" = Relationship(back_populates="tweet")
 
     class Config:
         arbitrary_types_allowed = True
@@ -54,6 +58,7 @@ class TweetCreate(TweetBase):
 
 class TweetPublic(TweetBase):
     author : UserPublic
+    #likes: "LikePublic"
 
 
 class TweetResponse(TweetPublic):
@@ -72,6 +77,24 @@ class Media(MediaBase, table=True):
 
 class MediaCreate(MediaBase):
     pass
+
+
+class LikeBase(SQLModel):
+    id: Optional[int] = None
+
+
+class Like(LikeBase, table=True):
+    __tablename__ = "like"
+    id: int = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    tweet_id: int = Field(foreign_key="tweet.id")
+    user: "User" = Relationship(back_populates="like")
+    tweet: "Tweet" = Relationship(back_populates="like")
+
+
+class LikePublic(LikeBase):
+    user_id: int
+    name: str = "user.name"
 
 
 def create_db_and_tables():

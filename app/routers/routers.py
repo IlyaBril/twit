@@ -17,13 +17,15 @@ from ..models.models import (User,
                              TweetResponse,
                              Media,
                              MediaCreate,
+                             Like,
                              SessionDep)
 
 from sqlmodel import (Field,
                       Session,
                       SQLModel,
                       create_engine,
-                      select)
+                      select,
+                      delete)
 
 
 
@@ -69,10 +71,10 @@ def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
     return {"result": "true", "tweet_id": db_tweet.id}
 
 
-@app_router.get("/tweets", response_model=dict[str, Union[list[TweetPublic], str]])
-#@app_router.get("/tweets")
+#@app_router.get("/tweets", response_model=dict[str, Union[list[TweetPublic], str]])
+@app_router.get("/tweets")
 async def tweets_get(*, session: SessionDep):
-    tweets = session.scalars(select(Tweet, User).join(User)).all()
+    tweets = session.scalars(select(Tweet).join(User).join(Like)).all()
     #tweets = session.scalars(select(Tweet)).all()
     #return tweets
     return {"result": "true", "tweets": tweets}
@@ -96,9 +98,16 @@ async def media_add(session: SessionDep,
             "media_id": media_f.media_id}
 
 
-#@app.delete("tweets/<id>")
-#async def tweet_delete(id) -> dict:
-#    return {"result": "true"}
+@app_router.delete("tweets/<id>")
+async def tweet_delete(id, session: SessionDep) -> dict:
+    # api_key = request.headers["api-key"]
+    api_key = 'test'
+    user_id = session.scalars(select(User.id).where(User.api_key==api_key)).one()
+    tweet_user_id = session.scalars(select(Tweet.user_id).where(Tweet.id==id)).one()
+    if user_id == tweet_user_id:
+        session.exec(delete(Tweet).where(Tweet.id==id))
+        session.commit()
+    return {"result": "true"}
 
 
 #@app.post("/app/tweets/<id>/like")
