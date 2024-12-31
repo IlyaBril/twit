@@ -6,44 +6,38 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 
 engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
 
-
 class UserBase(SQLModel):
     name: str = Field(index=True)
 
 
 class User(UserBase, table=True):
     __tablename__ = "user"
-    id: int = Field(primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
+    tweet: Optional[list["Tweet"]] = Relationship(back_populates="author")
+    #like: Optional["Like"] = Relationship(back_populates="user")
     api_key: str = Field()
-    tweet: "Tweet" = Relationship(back_populates="author")
-    like: "Like" = Relationship(back_populates="user")
-
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "name": "name"
-            }
-        }
 
 
 class UserPublic(UserBase):
-    id: int
+    pass
+
+
+class UserCreate(UserBase):
+    api_key: str
 
 
 class TweetBase(SQLModel):
-    id: Optional[int] = None
     content: Optional[str] = Field(index=True)
-    tweet_media_ids: List[int] = Field(sa_column=Column(ARRAY(Integer)))
+    tweet_media_ids: Optional[list[int]] = Field(sa_column=Column(ARRAY(Integer)))
 
 
 class Tweet(TweetBase, table=True):
     __tablename__ = "tweet"
-    id: int = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int | None = Field(default=None, foreign_key="user.id")
 
     author: "User" = Relationship(back_populates="tweet")
-    like: "Like" = Relationship(back_populates="tweet")
+    #like: list["Like"] = Relationship(back_populates="tweet")
 
     class Config:
         arbitrary_types_allowed = True
@@ -57,14 +51,11 @@ class TweetCreate(TweetBase):
 
 
 class TweetPublic(TweetBase):
-    author : UserPublic
-    #likes: "LikePublic"
+    pass
+    #like: list["LikePublic"]
 
-
-class TweetResponse(TweetPublic):
-    result: str | None
-    items : TweetPublic
-
+class TeamWithAuthor(TweetPublic):
+    author: UserPublic | None = None
 
 class MediaBase(SQLModel):
     image: bytes | None = None
@@ -80,21 +71,27 @@ class MediaCreate(MediaBase):
 
 
 class LikeBase(SQLModel):
-    id: Optional[int] = None
+    pass
 
 
 class Like(LikeBase, table=True):
-    __tablename__ = "like"
-    id: int = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
-    tweet_id: int = Field(foreign_key="tweet.id")
-    user: "User" = Relationship(back_populates="like")
-    tweet: "Tweet" = Relationship(back_populates="like")
-
-
-class LikePublic(LikeBase):
+     __tablename__ = "likes"
+     id: int = Field(default=None, primary_key=True)
+#     user_id: int = Field(foreign_key="user.id")
+#     tweet_id: int = Field(foreign_key="tweet.id")
+#
+#     tweet: "Tweet" = Relationship(back_populates="like")
+#     user: "User" = Relationship(back_populates="like")
+#
+#
+class LikePublic(LikeBase, UserPublic):
     user_id: int
-    name: str = "user.name"
+    name: str
+#
+#
+class LikeCreate(LikeBase):
+    user_id: int
+    tweet_id: int
 
 
 def create_db_and_tables():
