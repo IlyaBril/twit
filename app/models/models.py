@@ -19,7 +19,7 @@ class User(UserBase, table=True):
 
 
 class UserPublic(UserBase):
-    pass
+    id: int
 
 
 class UserCreate(UserBase):
@@ -37,7 +37,8 @@ class Tweet(TweetBase, table=True):
     user_id: int | None = Field(default=None, foreign_key="user.id")
 
     author: "User" = Relationship(back_populates="tweet")
-    like: Optional[list["Like"]] = Relationship(back_populates="tweet")
+    #like: Optional[list["Like"]] = Relationship(back_populates="tweet")
+    likes: Optional[list["Like"]] = Relationship()
 
     class Config:
         arbitrary_types_allowed = True
@@ -51,10 +52,13 @@ class TweetCreate(TweetBase):
 
 
 class TweetPublic(TweetBase):
-    like: list["LikePublic"]
+    pass
+
 
 class TeamWithAuthor(TweetPublic):
     author: UserPublic | None = None
+    likes: list["LikePublic"]
+
 
 class MediaBase(SQLModel):
     image: bytes | None = None
@@ -75,17 +79,17 @@ class LikeBase(SQLModel):
 
 class Like(LikeBase, table=True):
      __tablename__ = "likes"
-     id: int = Field(default=None, primary_key=True)
-     user_id: int = Field(foreign_key="user.id")
-     tweet_id: int = Field(foreign_key="tweet.id")
+     #id: int = Field(default=None, primary_key=True)
+     user_id: int | None = Field(default=None, foreign_key="user.id", primary_key=True)
+     tweet_id: int | None = Field(default=None, foreign_key="tweet.id", primary_key=True)
 
-     tweet: "Tweet" = Relationship(back_populates="like")
-     user: "User" = Relationship(back_populates="like")
+     #tweet: "Tweet" = Relationship(back_populates="like")
+     #user: "User" = Relationship(back_populates="like")
 #
 #
-class LikePublic(LikeBase, UserPublic):
+class LikePublic(LikeBase):
     user_id: int
-    name: str
+    #name: str
 #
 #
 class LikeCreate(LikeBase):

@@ -171,8 +171,8 @@ def create_user(user: UserCreate, session: SessionDep, request: Request):
 @app_router.get("/create_db")
 def create_db(session: SessionDep):
     #create users
-    #user = User(name="name_1", api_key="test")
-    #session.add(user)
+    user = User(name="name_1", api_key="test")
+    session.add(user)
     for i in range(2, 5):
         name = f'name{i}'
         api_key = f'test_{i}'
