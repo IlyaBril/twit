@@ -37,7 +37,7 @@ class Tweet(TweetBase, table=True):
     user_id: int | None = Field(default=None, foreign_key="user.id")
 
     author: "User" = Relationship(back_populates="tweet")
-    #like: list["Like"] = Relationship(back_populates="tweet")
+    like: Optional[list["Like"]] = Relationship(back_populates="tweet")
 
     class Config:
         arbitrary_types_allowed = True
@@ -51,8 +51,7 @@ class TweetCreate(TweetBase):
 
 
 class TweetPublic(TweetBase):
-    pass
-    #like: list["LikePublic"]
+    like: list["LikePublic"]
 
 class TeamWithAuthor(TweetPublic):
     author: UserPublic | None = None
@@ -77,11 +76,11 @@ class LikeBase(SQLModel):
 class Like(LikeBase, table=True):
      __tablename__ = "likes"
      id: int = Field(default=None, primary_key=True)
-#     user_id: int = Field(foreign_key="user.id")
-#     tweet_id: int = Field(foreign_key="tweet.id")
-#
-#     tweet: "Tweet" = Relationship(back_populates="like")
-#     user: "User" = Relationship(back_populates="like")
+     user_id: int = Field(foreign_key="user.id")
+     tweet_id: int = Field(foreign_key="tweet.id")
+
+     tweet: "Tweet" = Relationship(back_populates="like")
+     user: "User" = Relationship(back_populates="like")
 #
 #
 class LikePublic(LikeBase, UserPublic):
