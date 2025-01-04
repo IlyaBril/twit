@@ -1,6 +1,6 @@
 from sqlmodel import JSON, SQLModel, Field, Column, Relationship, ARRAY, Integer
 from sqlmodel import Session, create_engine, select
-from typing import Optional, Annotated, List
+from typing import Optional, Annotated, List, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 
@@ -14,12 +14,16 @@ class User(UserBase, table=True):
     __tablename__ = "user"
     id: int | None = Field(default=None, primary_key=True)
     tweet: Optional[list["Tweet"]] = Relationship(back_populates="author")
-    #like: Optional["Like"] = Relationship(back_populates="user")
+    likes: Optional["Like"] = Relationship(back_populates="namee")
     api_key: str = Field()
 
 
 class UserPublic(UserBase):
     id: int
+
+
+class UserLike(UserBase):
+    user_id: int | None = id
 
 
 class UserCreate(UserBase):
@@ -40,6 +44,7 @@ class Tweet(TweetBase, table=True):
     #like: Optional[list["Like"]] = Relationship(back_populates="tweet")
     likes: Optional[list["Like"]] = Relationship()
 
+
     class Config:
         arbitrary_types_allowed = True
 
@@ -52,12 +57,13 @@ class TweetCreate(TweetBase):
 
 
 class TweetPublic(TweetBase):
-    pass
+    id: int
 
 
-class TeamWithAuthor(TweetPublic):
+class TweetWithAuthor(TweetPublic):
     author: UserPublic | None = None
     likes: list["LikePublic"]
+    name: str | None = None
 
 
 class MediaBase(SQLModel):
@@ -74,24 +80,28 @@ class MediaCreate(MediaBase):
 
 
 class LikeBase(SQLModel):
-    pass
+    user_id: int | None = Field(default=None, foreign_key="user.id", primary_key=True)
+    # tweet: "Tweet" = Relationship(back_populates="likes")
 
 
 class Like(LikeBase, table=True):
      __tablename__ = "likes"
      #id: int = Field(default=None, primary_key=True)
-     user_id: int | None = Field(default=None, foreign_key="user.id", primary_key=True)
+     #user_id: int | None = Field(default=None, foreign_key="user.id", primary_key=True)
      tweet_id: int | None = Field(default=None, foreign_key="tweet.id", primary_key=True)
 
-     #tweet: "Tweet" = Relationship(back_populates="like")
-     #user: "User" = Relationship(back_populates="like")
-#
-#
+     #tweet: "Tweet" = Relationship(back_populates="likes")
+     namee: "User" = Relationship(back_populates="likes")
+
+
+
 class LikePublic(LikeBase):
-    user_id: int
-    #name: str
-#
-#
+    user_id: int | None = None
+    # plug. remove when issue solved
+    name : str | None = "to be changed"
+    #namee: Any | None = None
+
+
 class LikeCreate(LikeBase):
     user_id: int
     tweet_id: int

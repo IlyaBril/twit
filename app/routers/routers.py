@@ -15,7 +15,7 @@ from ..models.models import (User,
                              Tweet,
                              TweetCreate,
                              TweetPublic,
-                             TeamWithAuthor,
+                             TweetWithAuthor,
                              Media,
                              MediaCreate,
                              Like,
@@ -72,13 +72,16 @@ def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
     return {"result": "true", "tweet_id": db_tweet.id}
 
 
-@app_router.get("/tweets", response_model=dict[str, Union[list[TeamWithAuthor], Any]])
-#@app_router.get("/tweets", response_model=list[TeamWithAuthor])
+@app_router.get("/tweets", response_model=dict[str, Union[list[TweetWithAuthor], Any]])
+#@app_router.get("/tweets", response_model=None)
 async def tweets_get(*, session: SessionDep):
     #tweets = session.scalars(select(Tweet, User, Like).join_from(User, Like, isouter=True)).all()
     tweets = session.exec(select(Tweet)).all()
+
     #return tweets
     return {"result": "true", "tweets": tweets}
+
+
 
 
 @app_router.post("/medias")
@@ -114,7 +117,7 @@ async def tweet_delete(id, session: SessionDep) -> dict:
 async def tweet_like_add(id, like: LikeCreate, session: SessionDep,
                          request: Request) -> dict:
     # api_key = request.headers['api-key']
-    api_key = "test_2"
+    api_key = "test_3"
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
     like.user_id = user_id
     like.tweet_id = id
@@ -187,6 +190,16 @@ def create_db(session: SessionDep):
         content = f"content{i}"
         tweet = Tweet(user_id=user_id, content=content)
         session.add(tweet)
+    session.commit()
+
+    #create likes
+
+    like1 = Like(user_id=2, tweet_id=2)
+    like2 = Like(user_id=2, tweet_id=3)
+
+    session.add(like1)
+    session.add(like2)
+
     session.commit()
 
     return {"result": True}
