@@ -1,5 +1,7 @@
 import logging
-from typing import Annotated, Union, Any
+import os
+import aiofiles
+from typing import Annotated, Union, Any, List
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -8,6 +10,7 @@ from fastapi import (APIRouter,
                      Request,
                      Header,
                      Depends,
+                     File,
                      UploadFile)
 
 from ..models.models import (User,
@@ -64,7 +67,12 @@ def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
     api_key = 'test'
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
     tweet.user_id = user_id
-    tweet.content = tweet.tweet_data
+
+    links = session.scalars(select(Media.file_path)\
+                            .filter(Media.id.in_(tweet.tweet_media_ids)))
+
+    tweet.links = links
+
     db_tweet = Tweet.model_validate(tweet)
     session.add(db_tweet)
     session.commit()
@@ -72,7 +80,9 @@ def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
     return {"result": "true", "tweet_id": db_tweet.id}
 
 
-@app_router.get("/tweets", response_model=dict[str, Union[list[TweetWithAuthor], Any]])
+@app_router.get("/tweets",
+                response_model=dict[str, Union[list[TweetWithAuthor],
+                Any]])
 #@app_router.get("/tweets", response_model=None)
 async def tweets_get(*, session: SessionDep):
     #tweets = session.scalars(select(Tweet, User, Like).join_from(User, Like, isouter=True)).all()
@@ -82,8 +92,6 @@ async def tweets_get(*, session: SessionDep):
     return {"result": "true", "tweets": tweets}
 
 
-
-
 @app_router.post("/medias")
 async def media_add(session: SessionDep,
                     request: Request,
@@ -91,17 +99,21 @@ async def media_add(session: SessionDep,
     # api_key = request.headers["api-key"]
     api_key = 'test'
 
+    file_path = os.path.join('./pictures/', os.path.basename(file.filename))
     media_file = await file.read()
-    media_f = Media(image = media_file)
 
+    async with aiofiles.open(file_path, 'wb') as f:
+        await f.write(media_file)
+
+    media_f = Media(file_path=file_path)
     session.add(media_f)
     session.commit()
     session.refresh(media_f)
     return {"result": "true",
-            "media_id": media_f.media_id}
+            "media_id": media_f.id}
 
 
-@app_router.delete("tweets/<id>")
+@app_router.delete("/tweets/{id}")
 async def tweet_delete(id, session: SessionDep) -> dict:
     # api_key = request.headers["api-key"]
     api_key = 'test'
@@ -109,19 +121,20 @@ async def tweet_delete(id, session: SessionDep) -> dict:
     tweet_user_id = session.scalars(select(Tweet.user_id).where(Tweet.id==id)).one()
     if user_id == tweet_user_id:
         session.exec(delete(Tweet).where(Tweet.id==id))
+        #session.exec(delete(Tweet, id))
         session.commit()
     return {"result": "true"}
 
 
-@app_router.post("/app/tweets/<id>/like")
-async def tweet_like_add(id, like: LikeCreate, session: SessionDep,
+@app_router.post("/tweets/{id}/likes")
+async def tweet_like_add(id, session: SessionDep,
                          request: Request) -> dict:
     # api_key = request.headers['api-key']
     api_key = "test_3"
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
-    like.user_id = user_id
-    like.tweet_id = id
-    db_like = Like.model_validate(like)
+
+    db_like = Like(user_id = user_id, tweet_id = id)
+
     session.add(db_like)
     session.commit()
     session.refresh(db_like)
@@ -188,7 +201,8 @@ def create_db(session: SessionDep):
     for i in range(2, 5):
         user_id = 1
         content = f"content{i}"
-        tweet = Tweet(user_id=user_id, content=content)
+        #tweet = Tweet(user_id=user_id, content=content)
+        tweet = Tweet(user_id=user_id, tweet_data=content)
         session.add(tweet)
     session.commit()
 

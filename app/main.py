@@ -25,6 +25,7 @@ app.include_router(app_router,  prefix="/api")
 
 app.mount("/css", StaticFiles(directory="templates/css"), name="css")
 app.mount("/js", StaticFiles(directory="templates/js"), name="js")
+app.mount("/pictures", StaticFiles(directory="pictures"))
 
 
 @app.get("/", response_class=HTMLResponse)

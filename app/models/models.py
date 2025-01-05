@@ -1,8 +1,20 @@
-from sqlmodel import JSON, SQLModel, Field, Column, Relationship, ARRAY, Integer
-from sqlmodel import Session, create_engine, select
+from pydantic import ConfigDict
+from pydantic.alias_generators import to_pascal
+from sqlmodel import (JSON,
+                      SQLModel,
+                      Field,
+                      Column,
+                      Relationship,
+                      ARRAY,
+                      String)
+
+from sqlmodel import (Session,
+                      create_engine,
+                      select)
+
 from typing import Optional, Annotated, List, Any
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Body
 
 engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
 
@@ -31,8 +43,16 @@ class UserCreate(UserBase):
 
 
 class TweetBase(SQLModel):
-    content: Optional[str] = Field(index=True)
-    tweet_media_ids: Optional[list[int]] = Field(sa_column=Column(ARRAY(Integer)))
+    #model_config = ConfigDict(populate_by_name=True)
+
+    #content: Optional[str] = Field(index=True, alias='tweet_data')
+    tweet_data: Optional[str] = Field(alias='content',
+                                      schema_extra={"serialization_alias": "content"})
+    links: Optional[list[str]] = Field(sa_column=Column(ARRAY(String)),
+                                       schema_extra={"serialization_alias": "attachments"})
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class Tweet(TweetBase, table=True):
@@ -41,23 +61,25 @@ class Tweet(TweetBase, table=True):
     user_id: int | None = Field(default=None, foreign_key="user.id")
 
     author: "User" = Relationship(back_populates="tweet")
-    #like: Optional[list["Like"]] = Relationship(back_populates="tweet")
-    likes: Optional[list["Like"]] = Relationship()
+    likes: Optional[list["Like"]] = Relationship(back_populates="tweet",
+                                                 cascade_delete=True)
 
 
-    class Config:
-        arbitrary_types_allowed = True
+    # class Config:
+    #     arbitrary_types_allowed = True
 
 
 class TweetCreate(TweetBase):
     user_id: Optional[int] = None
     tweet_data: str | None = None
-    content: str | None = None
-    tweet_media_ids: List[int]
+    #content: str | None = None
+    links: List[str] | None = None
+    tweet_media_ids: Any
 
 
 class TweetPublic(TweetBase):
     id: int
+
 
 
 class TweetWithAuthor(TweetPublic):
@@ -67,16 +89,19 @@ class TweetWithAuthor(TweetPublic):
 
 
 class MediaBase(SQLModel):
-    image: bytes | None = None
+    file_path: str | None = Field(default=None)
 
 
 class Media(MediaBase, table=True):
-    media_id: int = Field(default=None, primary_key=True)
-    image: bytes = Field(default=None)
+    id: int = Field(default=None, primary_key=True)
 
 
 class MediaCreate(MediaBase):
     pass
+
+
+class MediaPublic(MediaBase):
+    id: int
 
 
 class LikeBase(SQLModel):
@@ -88,18 +113,18 @@ class Like(LikeBase, table=True):
      __tablename__ = "likes"
      #id: int = Field(default=None, primary_key=True)
      #user_id: int | None = Field(default=None, foreign_key="user.id", primary_key=True)
-     tweet_id: int | None = Field(default=None, foreign_key="tweet.id", primary_key=True)
+     tweet_id: int | None = Field(default=None, foreign_key="tweet.id", primary_key=True,
+                                  ondelete="CASCADE")
 
-     #tweet: "Tweet" = Relationship(back_populates="likes")
+     tweet: "Tweet" = Relationship(back_populates="likes")
      namee: "User" = Relationship(back_populates="likes")
-
 
 
 class LikePublic(LikeBase):
     user_id: int | None = None
     # plug. remove when issue solved
     name : str | None = "to be changed"
-    #namee: Any | None = None
+    #namee: UserPublic
 
 
 class LikeCreate(LikeBase):
