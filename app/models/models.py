@@ -1,4 +1,4 @@
-from pydantic import ConfigDict
+from pydantic import ConfigDict, BaseModel
 from pydantic.alias_generators import to_pascal
 from sqlmodel import (JSON,
                       SQLModel,
@@ -17,6 +17,7 @@ from typing import Optional, Annotated, List, Any
 from fastapi import Depends, FastAPI, HTTPException, Query, Body
 
 engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
+
 
 class UserBase(SQLModel):
     name: str = Field(index=True)
@@ -43,13 +44,8 @@ class UserCreate(UserBase):
 
 
 class TweetBase(SQLModel):
-    #model_config = ConfigDict(populate_by_name=True)
-
-    #content: Optional[str] = Field(index=True, alias='tweet_data')
     tweet_data: Optional[str] = Field(alias='content',
                                       schema_extra={"serialization_alias": "content"})
-    links: Optional[list[str]] = Field(sa_column=Column(ARRAY(String)),
-                                       schema_extra={"serialization_alias": "attachments"})
 
     class Config:
         allow_population_by_field_name = True
@@ -60,21 +56,22 @@ class Tweet(TweetBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     user_id: int | None = Field(default=None, foreign_key="user.id")
 
+    links: Optional[list[str]] = Field(sa_column=Column(ARRAY(String)), default=None,
+                                       schema_extra={"serialization_alias": "attachments"})
+
     author: "User" = Relationship(back_populates="tweet")
     likes: Optional[list["Like"]] = Relationship(back_populates="tweet",
                                                  cascade_delete=True)
 
 
-    # class Config:
-    #     arbitrary_types_allowed = True
-
-
-class TweetCreate(TweetBase):
-    user_id: Optional[int] = None
+class TweetIn(TweetBase):
     tweet_data: str | None = None
-    #content: str | None = None
+    tweet_media_ids: Optional[list[int]] = None
+
+
+class TweetCreate(TweetIn):
+    user_id: Optional[int] = None
     links: List[str] | None = None
-    tweet_media_ids: Any
 
 
 class TweetPublic(TweetBase):

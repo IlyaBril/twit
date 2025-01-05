@@ -19,6 +19,7 @@ from ..models.models import (User,
                              TweetCreate,
                              TweetPublic,
                              TweetWithAuthor,
+                             TweetIn,
                              Media,
                              MediaCreate,
                              Like,
@@ -61,23 +62,23 @@ async def read_item(request: Request):
 
 
 @app_router.post("/tweets")
-def tweet_add(tweet: TweetCreate, session: SessionDep, request: Request):
+def tweet_add(tweet: TweetIn, session: SessionDep,
+              api_key: Annotated[str | None, Header()] = None):
 
-    #api_key = request.headers["api-key"]
-    api_key = 'test'
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
-    tweet.user_id = user_id
 
     links = session.scalars(select(Media.file_path)\
                             .filter(Media.id.in_(tweet.tweet_media_ids)))
 
-    tweet.links = links
+    tweet_create = Tweet(tweet_data=tweet.tweet_data,
+                               user_id=user_id,
+                               links=links)
 
-    db_tweet = Tweet.model_validate(tweet)
-    session.add(db_tweet)
+    #tweet_create = Tweet.model_validate(tweet_create)
+    session.add(tweet_create)
     session.commit()
-    session.refresh(db_tweet)
-    return {"result": "true", "tweet_id": db_tweet.id}
+    session.refresh(tweet_create)
+    return {"result": "true", "tweet_id": tweet_create.id}
 
 
 @app_router.get("/tweets",
@@ -114,9 +115,10 @@ async def media_add(session: SessionDep,
 
 
 @app_router.delete("/tweets/{id}")
-async def tweet_delete(id, session: SessionDep) -> dict:
-    # api_key = request.headers["api-key"]
-    api_key = 'test'
+async def tweet_delete(id, session: SessionDep,
+                       request: Request,
+                       api_key: Annotated[str | None, Header()] = None) -> dict:
+    #api_key = request.headers["api-key"]
     user_id = session.scalars(select(User.id).where(User.api_key==api_key)).one()
     tweet_user_id = session.scalars(select(Tweet.user_id).where(Tweet.id==id)).one()
     if user_id == tweet_user_id:
@@ -132,13 +134,18 @@ async def tweet_like_add(id, session: SessionDep,
     # api_key = request.headers['api-key']
     api_key = "test_3"
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
-
     db_like = Like(user_id = user_id, tweet_id = id)
 
     session.add(db_like)
     session.commit()
     session.refresh(db_like)
     return {"result": True}
+
+
+@app_router.get("/header_test/")
+async def read_items(api_key: Annotated[str | None, Header()] = None):
+    return {"api_key": api_key}
+
 
 
 #@app.delete("/app/tweets/<id>/like")
