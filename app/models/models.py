@@ -1,5 +1,6 @@
 from pydantic import ConfigDict, BaseModel
 from pydantic.alias_generators import to_pascal
+from sqlalchemy.orm import mapped_column, relationship
 from sqlmodel import (JSON,
                       SQLModel,
                       Field,
@@ -19,6 +20,19 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Body
 engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
 
 
+class FollowersBase(SQLModel):
+    pass
+
+
+class Followers(FollowersBase, table=True):
+    __tablename__ = 'followers_table'
+    id: int | None = Field(default=None, primary_key=True)
+    follower_user_id: int = Field(default=None, foreign_key="user.id")
+    follower_id: int = Field(default=None, foreign_key="user.id")
+
+
+
+
 class UserBase(SQLModel):
     name: str = Field(index=True)
 
@@ -26,13 +40,35 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     __tablename__ = "user"
     id: int | None = Field(default=None, primary_key=True)
+    api_key: str = Field()
     tweet: Optional[list["Tweet"]] = Relationship(back_populates="author")
     likes: Optional["Like"] = Relationship(back_populates="namee")
-    api_key: str = Field()
+
+    followers: Optional[list["User"]] = Relationship(
+        back_populates='following',
+        sa_relationship_kwargs=dict(
+            secondary="followers_table",
+            primaryjoin="User.id == Followers.follower_user_id",
+            secondaryjoin="User.id == Followers.follower_id"))
+
+
+    following: Optional[list["User"]] = Relationship(
+        back_populates="followers",
+        sa_relationship_kwargs=dict(
+            secondary="followers_table",
+            primaryjoin="User.id == Followers.follower_id",
+            secondaryjoin="User.id == Followers.follower_user_id"))
+
+
+class UserTweet(UserBase):
+    id: int
 
 
 class UserPublic(UserBase):
     id: int
+    followers: list["UserBase"] | None = None
+
+
 
 
 class UserLike(UserBase):
@@ -78,10 +114,9 @@ class TweetPublic(TweetBase):
     id: int
 
 
-
 class TweetWithAuthor(TweetPublic):
-    author: UserPublic | None = None
-    likes: list["LikePublic"]
+    author: UserTweet | None = None
+    likes: list["LikePublic"] | None = None
     name: str | None = None
 
 
@@ -127,6 +162,44 @@ class LikePublic(LikeBase):
 class LikeCreate(LikeBase):
     user_id: int
     tweet_id: int
+
+
+
+
+
+
+
+# class FollowersCreate(FollowersBase):
+#     follower_user_id: int
+#     follower_id: int
+
+
+# class FollowersPublic(FollowersBase):
+#     follower_id: int
+#     follower: Optional["UserBase"] = None
+#     #follower: Optional["UserPublic"] = None
+#
+#
+# class FollowingBase(SQLModel):
+#     pass
+
+
+# class Following(FollowingBase, table=True):
+#     __tablename__ = 'following'
+#     id: int | None = Field(default=None, primary_key=True)
+#     following_user_id: int = Field(default=None, foreign_key="user.id")
+#     following_id: int = Field(default=None)
+#     #following_user: "User" = Relationship(back_populates="following_user")
+#     following: Optional["User"] = Relationship(back_populates="following")
+#
+#
+# class FollowingCreate(FollowingBase):
+#     follow_id: int
+#     following_id: int
+#
+#
+# class FollowingPublic(FollowingBase):
+#     following: list["UserFollowing"] | None = None
 
 
 def create_db_and_tables():

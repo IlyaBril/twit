@@ -15,6 +15,7 @@ from fastapi import (APIRouter,
 
 from ..models.models import (User,
                              UserCreate,
+                             UserPublic,
                              Tweet,
                              TweetCreate,
                              TweetPublic,
@@ -24,7 +25,10 @@ from ..models.models import (User,
                              MediaCreate,
                              Like,
                              LikeCreate,
-                             SessionDep)
+                             SessionDep,
+                             Followers,
+                             #Following
+    )
 
 from sqlmodel import (Field,
                       Session,
@@ -74,6 +78,7 @@ def tweet_add(tweet: TweetIn, session: SessionDep,
                                user_id=user_id,
                                links=links)
 
+#change
     #tweet_create = Tweet.model_validate(tweet_create)
     session.add(tweet_create)
     session.commit()
@@ -142,20 +147,24 @@ async def tweet_like_add(id, session: SessionDep,
     return {"result": True}
 
 
-@app_router.get("/header_test/")
-async def read_items(api_key: Annotated[str | None, Header()] = None):
-    return {"api_key": api_key}
-
-
 
 #@app.delete("/app/tweets/<id>/like")
 #async def tweet_like_delete(id) -> dict:
 #    return {"result": "true"}
 
 
-#@app.post("/app/users/<id>/follow")
-#async def user_follow_add(id):
-#    return {"result": "true"}
+@app_router.post("/users/{id}/follow")
+async def user_follow_add(id: int, session: SessionDep,
+              api_key: Annotated[str | None, Header()] = None) -> dict:
+
+    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
+
+    follower = Followers(follower_user_id=user_id,
+                         follower_id=id)
+
+    session.add(follower)
+    session.commit()
+    return {"result": "true"}
 
 
 #@app.delete("/app/users/<id>/follow")
@@ -177,7 +186,7 @@ async def read_items(api_key: Annotated[str | None, Header()] = None):
 
 
 @app_router.get("/users/")
-def get_users(session: SessionDep) -> list[User]:
+def get_users(session: SessionDep) -> list[UserPublic]:
     users = session.exec(select(User)).all()
     return users
 
