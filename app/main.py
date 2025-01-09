@@ -25,14 +25,14 @@ app.include_router(app_router,  prefix="/api")
 
 app.mount("/css", StaticFiles(directory="templates/css"), name="css")
 app.mount("/js", StaticFiles(directory="templates/js"), name="js")
-app.mount("/pictures", StaticFiles(directory="pictures"))
+app.mount("/templates", StaticFiles(directory="templates"))
 
 
 @app.get("/", response_class=HTMLResponse)
 async def read_item(request: Request):
     #id = request.headers["api-key"]
     return templates.TemplateResponse(
-        request=request, name="index.html", headers={"api-key": "1"}
+        request=request, name="index.html", headers={"api-key": "test"}
     )
 
 
