@@ -2,16 +2,16 @@ import asyncio
 import httpx
 import pytest
 
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
-from app.main import fast_app
+from app.main import app
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     loop = asyncio.get_event_loop()
+#     yield loop
+#     loop.close()
 
 
 #async def init_db():
@@ -22,9 +22,9 @@ def event_loop():
 
 
 @pytest.fixture(scope="session")
-async def default_client():
+async def test_app():
     #await init_db()
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=fast_app),
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                  base_url="http://") as client:
         yield client
     #Clean up resources
