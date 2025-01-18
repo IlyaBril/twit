@@ -2,29 +2,39 @@ import asyncio
 import httpx
 import pytest
 
+from typing import AsyncIterator, Iterator
 from httpx import ASGITransport, AsyncClient
-
 from app.main import app
+from app.models.models import get_session
+from sqlmodel import (Session,
+                      create_engine,
+                      SQLModel)
 
+from fastapi.testclient import TestClient
 
-# @pytest.fixture(scope="session")
-# def event_loop():
-#     loop = asyncio.get_event_loop()
-#     yield loop
-#     loop.close()
-
-
-#async def init_db():
-#    test_settings = Settings()
-#    test_settings.DATABASE_URL =
-#    "mongodb://localhost:27017/testdb"
-#    await test_settings.initialize_database()
+TEST_DB_URL = "postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/test_db"
 
 
 @pytest.fixture(scope="session")
-async def test_app():
-    #await init_db()
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
-                                 base_url="http://") as client:
-        yield client
-    #Clean up resources
+def test_engine():
+    return create_engine(TEST_DB_URL, echo=True)
+
+@pytest.fixture(name="session")
+def session_fixture(test_engine):
+    SQLModel.metadata.drop_all(test_engine)
+    SQLModel.metadata.create_all(test_engine)
+    with Session(test_engine) as session:
+        yield session
+
+
+@pytest.fixture(name="client")
+def client_fixture(session: Session):
+    def get_session_override():
+        return session
+
+    app.dependency_overrides[get_session] = get_session_override
+
+    client = TestClient(app)
+    yield client
+    app.dependency_overrides.clear()
+
