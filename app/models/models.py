@@ -33,11 +33,13 @@ class Followers(FollowersBase, table=True):
 
 class UserBase(SQLModel):
     name: str = Field(index=True)
-
+    id: int | None = Field(default=None, primary_key=True, alias='user_id',
+                           schema_extra={"serialization_alias": "user_id"})
 
 class User(UserBase, table=True):
     __tablename__ = "user"
-    id: int | None = Field(default=None, primary_key=True)
+    #id: int | None = Field(default=None, primary_key=True, alias='user_id',
+    #                       schema_extra={"serialization_alias": "user_id"})
     api_key: str = Field()
     tweet: Optional[list["Tweet"]] = Relationship(back_populates="author")
 
@@ -67,7 +69,7 @@ class UserPublic(UserBase):
 
 
 class UserLike(UserBase):
-    user_id: int | None = id
+    pass
 
 
 class UserCreate(UserBase):
@@ -75,14 +77,12 @@ class UserCreate(UserBase):
 
 
 class TweetBase(SQLModel):
+    model_config = ConfigDict(populate_by_name = True)
     tweet_data: Optional[str] = Field(alias='content',
                                       schema_extra={"serialization_alias": "content"})
 
     links: Optional[list[str]] = Field(sa_column=Column(ARRAY(String)), default=None,
                                        schema_extra={"serialization_alias": "attachments"})
-
-    class Config:
-        allow_population_by_field_name = True
 
 
 class Tweet(TweetBase, table=True):
@@ -114,8 +114,7 @@ class TweetPublic(TweetBase):
 
 class TweetWithAuthor(TweetPublic):
     author: UserTweet | None = None
-    likes: list["UserTweet"] | None = None
-    name: str | None = None
+    likes: list["UserLike"] | None = None
 
 
 class MediaBase(SQLModel):
@@ -163,4 +162,3 @@ def get_session():
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
-

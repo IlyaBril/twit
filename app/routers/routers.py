@@ -48,7 +48,9 @@ logging.basicConfig(filename='myapp.log')
 
 @app_router.get("/users/me", response_model=dict[str, Union[UserPublic, Any]])
 async def read_item(session: SessionDep, api_key: Annotated[str | None, Header()] = None):
-    user = session.scalars(select(User).where(User.api_key == api_key)).one()
+    user = session.scalars(select(User).where(User.api_key == api_key)).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Item not found")
     return {"result": True,
             "user": user}
 
@@ -82,7 +84,7 @@ async def tweets_get(*, session: SessionDep):
 async def media_add(session: SessionDep,
                     file: UploadFile | None = None) -> dict:
 
-    file_path = os.path.join('./templates/pictures', os.path.basename(file.filename))
+    file_path = os.path.join('../app/templates/pictures', os.path.basename(file.filename))
     media_file = await file.read()
 
     async with aiofiles.open(file_path, 'wb') as f:
@@ -100,7 +102,10 @@ async def media_add(session: SessionDep,
 async def tweet_delete(id, session: SessionDep,
                        api_key: Annotated[str | None, Header()] = None) -> dict:
 
-    user_id = session.scalars(select(User.id).where(User.api_key==api_key)).one()
+    user_id = session.scalars(select(User.id).where(User.api_key==api_key)).one_or_none()
+    if user_id is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+
     tweet_user_id = session.scalars(select(Tweet.user_id).where(Tweet.id==id)).one()
     if user_id == tweet_user_id:
         media_links = session.scalars(select(Tweet.links).where(Tweet.id==id)).one_or_none()
@@ -139,8 +144,8 @@ async def user_follow_add(id: int, session: SessionDep,
 
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
 
-    follower = Followers(follower_user_id=user_id,
-                         follower_id=id)
+    follower = Followers(follower_user_id=id,
+                         follower_id=user_id)
 
     session.add(follower)
     session.commit()
@@ -151,8 +156,10 @@ async def user_follow_add(id: int, session: SessionDep,
 async def user_follow_delete(id, session: SessionDep,
                              api_key: Annotated[str | None, Header()] = None) -> dict:
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
-    session.exec(delete(Followers).where(Followers.follower_user_id==user_id)\
-                 .where(Followers.follower_id==id))
+    session.exec(delete(Followers).where(Followers.follower_user_id==id)\
+                 .where(Followers.follower_id==user_id))
+
+    session.commit()
 
     return {"result": True}
 
