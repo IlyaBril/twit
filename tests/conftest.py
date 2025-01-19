@@ -1,9 +1,5 @@
-import asyncio
-import httpx
 import pytest
 
-from typing import AsyncIterator, Iterator
-from httpx import ASGITransport, AsyncClient
 from app.main import app
 from app.models.models import get_session
 from sqlmodel import (Session,
@@ -19,7 +15,7 @@ TEST_DB_URL = "postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/test_db"
 def test_engine():
     return create_engine(TEST_DB_URL, echo=True)
 
-@pytest.fixture(name="session")
+@pytest.fixture(name="session", scope="session")
 def session_fixture(test_engine):
     SQLModel.metadata.drop_all(test_engine)
     SQLModel.metadata.create_all(test_engine)
@@ -27,7 +23,7 @@ def session_fixture(test_engine):
         yield session
 
 
-@pytest.fixture(name="client")
+@pytest.fixture(name="client", scope="session")
 def client_fixture(session: Session):
     def get_session_override():
         return session

@@ -1,6 +1,4 @@
 from pydantic import ConfigDict, BaseModel
-from pydantic.alias_generators import to_pascal
-from sqlalchemy.orm import mapped_column, relationship
 from sqlmodel import (JSON,
                       SQLModel,
                       Field,
@@ -14,7 +12,6 @@ from sqlmodel import (Session,
                       select)
 
 from typing import Optional, Annotated, List, Any
-
 from fastapi import Depends, FastAPI, HTTPException, Query, Body
 
 engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
@@ -40,7 +37,7 @@ class User(UserBase, table=True):
     __tablename__ = "user"
     #id: int | None = Field(default=None, primary_key=True, alias='user_id',
     #                       schema_extra={"serialization_alias": "user_id"})
-    api_key: str = Field()
+    api_key: str = Field(unique=True)
     tweet: Optional[list["Tweet"]] = Relationship(back_populates="author")
 
     followers: Optional[list["User"]] = Relationship(

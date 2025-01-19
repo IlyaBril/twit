@@ -44,15 +44,6 @@ coverage.xml
 .pytest_cache/
 cover/
 
-# Translations
-*.mo
-*.pot
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
@@ -67,8 +58,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# mkdocs documentation
-/site
 
 # mypy
 .mypy_cache/

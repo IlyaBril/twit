@@ -7,21 +7,11 @@ services:
     container_name: my_db
     image: postgres
     restart: always
-    # set shared memory limit when using docker-compose
-    # shm_size: 128mb
-    # or set shared memory limit when deploy via swarm stack
-    #volumes:
-    #  - type: tmpfs
-    #    target: /dev/shm
-    #    tmpfs:
-    #      size: 134217728 # 128*2^20 bytes = 128Mb
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=twit_db
       - log_destination=stderr
-      - logging_collector=on
-      - log_directory=/var/lib/postgresql/log
 
     ports:
       - 5432:5432
@@ -30,6 +20,17 @@ services:
 
     volumes:
       - ./db/:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Добавление инициализации
+
+
+  web:
+    build: ./app
+    command: uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000
+    volumes:
+      - ./app/:/usr/src/app/
+    ports:
+      - 8002:8000
+
 
 networks:
   my_net:

@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import APIRouter, Request, Header
+from fastapi import APIRouter, Request
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from fastapi.responses import HTMLResponse
@@ -26,13 +26,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-
-
 app.include_router(app_router,  prefix="/api")
 
-app.mount("/app/templates/css", StaticFiles(directory="../app/templates/css"), name="css")
-app.mount("/app/templates/js", StaticFiles(directory="../app/templates/js"), name="js")
-app.mount("/app/templates", StaticFiles(directory="../app/templates"), name="pictures")
+app.mount("/app/templates/css", StaticFiles(directory="./app/templates/css"), name="css")
+app.mount("/app/templates/js", StaticFiles(directory="./app/templates/js"), name="js")
+app.mount("/app/templates", StaticFiles(directory="./app/templates"), name="pictures")
 
 
 @app.get("/", response_class=HTMLResponse)

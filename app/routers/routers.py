@@ -1,15 +1,10 @@
-import logging
 import os
 import aiofiles
-from typing import Annotated, Union, Any, List
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from typing import Annotated, Union, Any
+
 
 from fastapi import (APIRouter,
                      Header,
-                     Depends,
-                     File,
                      HTTPException,
                      UploadFile)
 
@@ -17,33 +12,18 @@ from ..models.models import (User,
                              UserCreate,
                              UserPublic,
                              Tweet,
-                             TweetCreate,
-                             TweetPublic,
                              TweetWithAuthor,
                              TweetIn,
                              Media,
-                             MediaCreate,
                              Like,
-                             LikeCreate,
                              SessionDep,
                              Followers,
     )
 
-from sqlmodel import (Field,
-                      Session,
-                      SQLModel,
-                      create_engine,
-                      select,
-                      delete)
+from sqlmodel import (select, delete)
 
-from sqlalchemy.orm import joinedload
 
 app_router = APIRouter()
-
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-logging.basicConfig(filename='myapp.log')
 
 
 @app_router.get("/users/me", response_model=dict[str, Union[UserPublic, Any]])
@@ -185,7 +165,6 @@ def create_user(user: UserCreate, session: SessionDep):
     session.commit()
     session.refresh(db_user)
     return db_user
-
 
 @app_router.get("/create_db")
 def create_db(session: SessionDep):
