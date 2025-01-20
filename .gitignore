@@ -1,5 +1,7 @@
 .idea*
-app/db/
+src/app/db/
+db/
+q
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
