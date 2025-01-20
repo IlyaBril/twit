@@ -1,8 +1,8 @@
-from ..models.models import (User,
-                             Tweet,
-                             Like,
-                             SessionDep,
-)
+from src.app.models import (User,
+                            Tweet,
+                            Like,
+                            SessionDep,
+                            )
 
 
 from routers import app_router

@@ -8,23 +8,24 @@ from fastapi import (APIRouter,
                      HTTPException,
                      UploadFile)
 
-from ..models.models import (User,
-                             UserCreate,
-                             UserPublic,
-                             Tweet,
-                             TweetWithAuthor,
-                             TweetIn,
-                             Media,
-                             Like,
-                             SessionDep,
-                             Followers,
-    )
+from app.models.models import (User,
+                        UserCreate,
+                        UserPublic,
+                        Tweet,
+                        TweetWithAuthor,
+                        TweetIn,
+                        Media,
+                        Like,
+                        SessionDep,
+                        Followers,
+                        )
 
 from sqlmodel import (select, delete)
 
-
 app_router = APIRouter()
 
+root_dir = os.path.dirname(os.path.abspath(__file__))
+pictures_directory = os.path.join(root_dir , "pictures")
 
 @app_router.get("/users/me", response_model=dict[str, Union[UserPublic, Any]])
 async def read_item(session: SessionDep, api_key: Annotated[str | None, Header()] = None):
@@ -64,7 +65,7 @@ async def tweets_get(*, session: SessionDep):
 async def media_add(session: SessionDep,
                     file: UploadFile | None = None) -> dict:
 
-    file_path = os.path.join('../app/templates/pictures', os.path.basename(file.filename))
+    file_path = os.path.join('./app/templates/pictures', os.path.basename(file.filename))
     media_file = await file.read()
 
     async with aiofiles.open(file_path, 'wb') as f:

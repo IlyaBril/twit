@@ -1,6 +1,5 @@
-import uvicorn
-from fastapi import APIRouter, Request
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from fastapi import Request
+import os
 
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,14 +7,21 @@ from fastapi.templating import Jinja2Templates
 
 import logging
 from fastapi import FastAPI
-from .models.models import create_db_and_tables
-from .routers.routers import app_router
+from app.models.models import create_db_and_tables
+
+from app.routers.routers import app_router
 from contextlib import asynccontextmanager
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-templates = Jinja2Templates(directory="templates")
+root_dir = os.path.dirname(os.path.abspath(__file__))
+template_folder = os.path.join(root_dir, "templates")
+js_directory = os.path.join(template_folder, "js")
+css_directory = os.path.join(template_folder, "css")
+pictures_directory = os.path.join(root_dir, "templates/pictures")
+
+templates = Jinja2Templates(directory=template_folder)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,9 +34,10 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(app_router,  prefix="/api")
 
-app.mount("/app/templates/css", StaticFiles(directory="./app/templates/css"), name="css")
-app.mount("/app/templates/js", StaticFiles(directory="./app/templates/js"), name="js")
-app.mount("/app/templates", StaticFiles(directory="./app/templates"), name="pictures")
+app.mount("/templates", StaticFiles(directory=template_folder), name="templates")
+app.mount("/css", StaticFiles(directory=css_directory), name="css")
+app.mount("/js", StaticFiles(directory=js_directory), name="js")
+app.mount("/pictures", StaticFiles(directory=pictures_directory), name="pictures")
 
 
 @app.get("/", response_class=HTMLResponse)
