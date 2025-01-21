@@ -1,5 +1,6 @@
 .idea*
 src/app/db/
+src/db/
 db/
 q
 # Byte-compiled / optimized / DLL files
