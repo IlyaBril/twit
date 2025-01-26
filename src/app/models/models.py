@@ -14,7 +14,7 @@ from sqlmodel import (Session,
 from typing import Optional, Annotated, List, Any
 from fastapi import Depends, FastAPI, HTTPException, Query, Body
 
-engine = create_engine('postgresql+psycopg2://postgres:postgres@my_db:5432/twit_db')
+engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
 
 
 class FollowersBase(SQLModel):
