@@ -43,36 +43,40 @@ def test_create_user_2(client: TestClient):
     }
 
 def test_create_tweet_user_1(client: TestClient):
-    client.post("/api/tweet", json={'id': 2, "name": "name_1", "api_key": "test_2"})
-    response = client.get("/api/users/2")
+    response = client.post("/api/tweets",
+                headers={"api-key": "test"},
+                json={"tweet_data": "tweet_data_1",
+                      "links": [],
+                      "tweet_media_ids": []})
 
+    assert response.status_code == 200
+    assert response.json() == {"result": True, "tweet_id": 1}
+
+def test_get_tweets(client: TestClient):
+    response = client.get("/api/tweets")
     data = response.json()
 
     assert response.status_code == 200
-    assert data == {
-        "result": True,
-        "user": {
-            "id": 2,
-            "name": "name_1",
-            "followers": [],
-            "following": []
-        }
-    }
+    assert data == {"result": True,
+                    "tweets": [
+                        {
+                            "content": "tweet_data_1",
+                            "attachments": [],
+                            "id": 1,
+                            "author": {
+                                "name": "name_1",
+                                "id": 1
+                            },
+                            "likes": []
+                        }
+                    ]
+                    }
 
-def create_tweet(client: TestClient):
-    client.post("/api/users", json={'id': 2, "name": "name_1", "api_key": "test_2"})
-    response = client.get("/api/users/2")
 
+def create_like(client: TestClient):
+    response = client.post("/api/tweets/1/likes", json={"api_key": "test"})
     data = response.json()
 
     assert response.status_code == 200
-    assert data == {
-        "result": True,
-        "user": {
-            "id": 2,
-            "name": "name_1",
-            "followers": [],
-            "following": []
-        }
-    }
+    assert data == {"result": True}
 
