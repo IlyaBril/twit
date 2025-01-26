@@ -9,7 +9,11 @@ import logging
 from fastapi import FastAPI
 from app.models.models import create_db_and_tables
 
-from app.routers.routers import app_router
+from app.routers.routers import app_init
+from app.routers.users import app_users
+from app.routers.tweets import app_tweets
+from app.routers.medias import app_medias
+
 from contextlib import asynccontextmanager
 
 logger = logging.getLogger(__name__)
@@ -32,7 +36,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(app_router,  prefix="/api")
+app.include_router(app_init,  prefix="/init")
+app.include_router(app_users,  prefix="/api/users")
+app.include_router(app_tweets,  prefix="/api/tweets")
+app.include_router(app_medias,  prefix="/api/medias")
 
 app.mount("/templates", StaticFiles(directory=template_folder), name="templates")
 app.mount("/css", StaticFiles(directory=css_directory), name="css")
@@ -42,20 +49,9 @@ app.mount("/pictures", StaticFiles(directory=pictures_directory), name="pictures
 
 @app.get("/", response_class=HTMLResponse)
 async def read_item(request: Request):
-    #id = request.headers["api-key"]
-    return templates.TemplateResponse(
-        request=request, name="index.html", headers={"api-key": "test"}
-    )
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.get("/test")
 async def welcome() -> dict:
     return {"message": "Hello"}
-
-
-# @app.on_event("startup")
-# def on_startup():
-#     create_db_and_tables()
-
-
-
