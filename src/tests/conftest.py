@@ -8,7 +8,7 @@ from sqlmodel import (Session,
 
 from fastapi.testclient import TestClient
 
-TEST_DB_URL = "postgresql+psycopg2://postgres:postgres@my;_db:5432/test_db"
+TEST_DB_URL = "postgresql+psycopg2://postgres:postgres@my_db:5432/test_db"
 
 
 @pytest.fixture(scope="session")
