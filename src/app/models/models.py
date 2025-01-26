@@ -5,16 +5,18 @@ from sqlmodel import (JSON,
                       Column,
                       Relationship,
                       ARRAY,
-                      String)
+                      String
+                      )
 
 from sqlmodel import (Session,
                       create_engine,
-                      select)
+                      select,
+                      LargeBinary)
 
 from typing import Optional, Annotated, List, Any
 from fastapi import Depends, FastAPI, HTTPException, Query, Body
 
-engine = create_engine('postgresql+psycopg2://postgres:postgres@my_db:5432/twit_db')
+engine = create_engine('postgresql+psycopg2://postgres:postgres@0.0.0.0:5432/twit_db')
 
 
 class FollowersBase(SQLModel):
@@ -35,8 +37,7 @@ class UserBase(SQLModel):
 
 class User(UserBase, table=True):
     __tablename__ = "user"
-    #id: int | None = Field(default=None, primary_key=True, alias='user_id',
-    #                       schema_extra={"serialization_alias": "user_id"})
+
     api_key: str = Field(unique=True)
     tweet: Optional[list["Tweet"]] = Relationship(back_populates="author")
 
@@ -99,14 +100,8 @@ class TweetIn(TweetBase):
     tweet_data: str | None = None
     tweet_media_ids: Optional[list[int]] = None
 
-
-class TweetCreate(TweetIn):
-    user_id: Optional[int] = None
-    links: List[str] | None = None
-
-
 class TweetPublic(TweetBase):
-    id: int
+    id: Optional[int] = None
 
 
 class TweetWithAuthor(TweetPublic):
@@ -115,15 +110,15 @@ class TweetWithAuthor(TweetPublic):
 
 
 class MediaBase(SQLModel):
-    file_path: str | None = Field(default=None)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    file_name: str | None = Field(default=None)
 
 
 class Media(MediaBase, table=True):
+    __tablename__ = 'medias'
+
     id: int = Field(default=None, primary_key=True)
-
-
-class MediaCreate(MediaBase):
-    pass
+    file_body: bytes  = Field(sa_column=Column(LargeBinary), default=None)
 
 
 class MediaPublic(MediaBase):
