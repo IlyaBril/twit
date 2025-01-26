@@ -1,13 +1,18 @@
 import os
 import aiofiles
+import httpx
+
 from typing import Annotated, Union, Any
+from fastapi import Request
+import requests
 
 
 from fastapi import (APIRouter,
                      Header,
                      HTTPException,
                      UploadFile,
-                     Response)
+                     Response,
+                     Request)
 
 from app.models.models import (User,
                         UserCreate,
@@ -25,8 +30,6 @@ from sqlmodel import (select, delete)
 
 app_router = APIRouter()
 
-root_dir = os.path.dirname(os.path.abspath(__file__))
-pictures_directory = os.path.join(root_dir , "pictures")
 
 @app_router.get("/users/me", response_model=dict[str, Union[UserPublic, Any]])
 async def read_item(session: SessionDep, api_key: Annotated[str | None, Header()] = None):
@@ -59,7 +62,6 @@ async def user_follow_delete(id, session: SessionDep,
                  .where(Followers.follower_id==user_id))
 
     session.commit()
-
     return {"result": True}
 
 
@@ -96,12 +98,11 @@ async def tweets_get(*, session: SessionDep):
 @app_router.post("/tweets")
 def tweet_add(tweet: TweetIn, session: SessionDep,
               api_key: Annotated[str | None, Header()] = None):
-
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
-    links = [
-        f"/api/medias/{media_id}"
-        for media_id in tweet.tweet_media_ids
-    ],
+
+    links = []
+    for i in tweet.tweet_media_ids:
+        links.append(f"/api/medias/{i}")
 
     tweet_create = Tweet(tweet_data=tweet.tweet_data,
                                user_id=user_id,
@@ -110,9 +111,6 @@ def tweet_add(tweet: TweetIn, session: SessionDep,
     session.add(tweet_create)
     session.commit()
     session.refresh(tweet_create)
-
-
-
 
     return {"result": True, "tweet_id": tweet_create.id}
 
@@ -128,9 +126,12 @@ async def tweet_delete(id, session: SessionDep,
     tweet_user_id = session.scalars(select(Tweet.user_id).where(Tweet.id==id)).one()
     if user_id == tweet_user_id:
         media_links = session.scalars(select(Tweet.links).where(Tweet.id==id)).one_or_none()
-        for media_link in media_links:
-            requests.delete(medial_link)
 
+        for media_id in media_links:
+            media_id = media_id.split('/')[-1]
+            session.exec(delete(Media).where(Media.id==media_id))
+        session.exec(delete(Tweet).where(Tweet.id == id))
+        session.commit()
         return {"result": True}
     else:
         raise HTTPException(status_code=404, detail="Item not deleted")
@@ -159,7 +160,7 @@ async def tweet_like_delete(id, session: SessionDep,
 
 @app_router.get("/medias/{media_id}",)
 async def media_receive(session: SessionDep, media_id):
-    media = session.execute(select(Media.file_body, int(media_id))).one()
+    media = session.execute(select(Media.file_body).where(Media.id==media_id)).one()
     return Response(content=media.file_body, media_type="image/png")
 
 
@@ -180,7 +181,8 @@ async def media_add(session: SessionDep,
 
 @app_router.delete("/medias/{media_id}",)
 async def media_receive(session: SessionDep, media_id):
-    media = session.execute(delete(Media, int(media_id))).one()
+    session.execute(delete(Media).where(Media.id==int(media_id)))
+    session.commit()
     return '', 202
 
 
@@ -201,14 +203,14 @@ def create_db(session: SessionDep):
     for i in range(2, 5):
         user_id = 1
         content = f"content{i}"
-        tweet = Tweet(user_id=user_id, tweet_data=content)
+        tweet = Tweet(api_key="test_2", tweet_data=content)
         session.add(tweet)
     session.commit()
 
     #create likes
 
-    like1 = Like(user_id=2, tweet_id=2)
-    like2 = Like(user_id=2, tweet_id=3)
+    like1 = Like(api_key="test_2", tweet_id=2)
+    like2 = Like(api_key="test_2", tweet_id=3)
 
     session.add(like1)
     session.add(like2)

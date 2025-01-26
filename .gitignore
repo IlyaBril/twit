@@ -3,6 +3,7 @@ src/app/db/
 src/db/
 db/
 q
+study.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

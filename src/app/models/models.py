@@ -104,9 +104,11 @@ class TweetPublic(TweetBase):
     id: Optional[int] = None
 
 
+
 class TweetWithAuthor(TweetPublic):
     author: UserTweet | None = None
     likes: list["UserLike"] | None = None
+
 
 
 class MediaBase(SQLModel):
@@ -115,10 +117,8 @@ class MediaBase(SQLModel):
 
 
 class Media(MediaBase, table=True):
-    __tablename__ = 'medias'
-
     id: int = Field(default=None, primary_key=True)
-    file_body: bytes  = Field(sa_column=Column(LargeBinary), default=None)
+    file_body: Optional[Any]  = Field(sa_column=Column(LargeBinary), default=None)
 
 
 class MediaPublic(MediaBase):
