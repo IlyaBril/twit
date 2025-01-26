@@ -1,12 +1,18 @@
 import os
 import aiofiles
+import httpx
+
 from typing import Annotated, Union, Any
+from fastapi import Request
+import requests
 
 
 from fastapi import (APIRouter,
                      Header,
                      HTTPException,
-                     UploadFile)
+                     UploadFile,
+                     Response,
+                     Request)
 
 from app.models.models import (User,
                         UserCreate,
@@ -24,8 +30,6 @@ from sqlmodel import (select, delete)
 
 app_router = APIRouter()
 
-root_dir = os.path.dirname(os.path.abspath(__file__))
-pictures_directory = os.path.join(root_dir , "pictures")
 
 @app_router.get("/users/me", response_model=dict[str, Union[UserPublic, Any]])
 async def read_item(session: SessionDep, api_key: Annotated[str | None, Header()] = None):
@@ -36,22 +40,52 @@ async def read_item(session: SessionDep, api_key: Annotated[str | None, Header()
             "user": user}
 
 
-@app_router.post("/tweets")
-def tweet_add(tweet: TweetIn, session: SessionDep,
-              api_key: Annotated[str | None, Header()] = None):
+@app_router.post("/users/{id}/follow")
+async def user_follow_add(id: int, session: SessionDep,
+              api_key: Annotated[str | None, Header()] = None) -> dict:
 
     user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
-    links = session.scalars(select(Media.file_path)\
-                            .filter(Media.id.in_(tweet.tweet_media_ids)))
 
-    tweet_create = Tweet(tweet_data=tweet.tweet_data,
-                               user_id=user_id,
-                               links=links)
+    follower = Followers(follower_user_id=id,
+                         follower_id=user_id)
 
-    session.add(tweet_create)
+    session.add(follower)
     session.commit()
-    session.refresh(tweet_create)
-    return {"result": True, "tweet_id": tweet_create.id}
+    return {"result": True}
+
+
+@app_router.delete("/users/{id}/follow")
+async def user_follow_delete(id, session: SessionDep,
+                             api_key: Annotated[str | None, Header()] = None) -> dict:
+    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
+    session.exec(delete(Followers).where(Followers.follower_user_id==id)\
+                 .where(Followers.follower_id==user_id))
+
+    session.commit()
+    return {"result": True}
+
+
+@app_router.get("/users/{id}",
+                response_model=dict[str, Union[UserPublic, Any]])
+async def user_get(id, session: SessionDep):
+    user = session.exec(select(User).where(User.id==id)).one_or_none()
+    return {"result": True,
+            "user": user}
+
+
+@app_router.get("/users/")
+def get_users(session: SessionDep) -> list[UserPublic]:
+    users = session.exec(select(User)).all()
+    return users
+
+
+@app_router.post("/users/")
+def create_user(user: UserCreate, session: SessionDep):
+    db_user = User.model_validate(user)
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return db_user
 
 
 @app_router.get("/tweets",
@@ -61,22 +95,24 @@ async def tweets_get(*, session: SessionDep):
     return {"result": True, "tweets": tweets}
 
 
-@app_router.post("/medias")
-async def media_add(session: SessionDep,
-                    file: UploadFile | None = None) -> dict:
+@app_router.post("/tweets")
+def tweet_add(tweet: TweetIn, session: SessionDep,
+              api_key: Annotated[str | None, Header()] = None):
+    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
 
-    file_path = os.path.join('./app/templates/pictures', os.path.basename(file.filename))
-    media_file = await file.read()
+    links = []
+    for i in tweet.tweet_media_ids:
+        links.append(f"/api/medias/{i}")
 
-    async with aiofiles.open(file_path, 'wb') as f:
-        await f.write(media_file)
+    tweet_create = Tweet(tweet_data=tweet.tweet_data,
+                               user_id=user_id,
+                               links=links)
 
-    media_f = Media(file_path=file_path)
-    session.add(media_f)
+    session.add(tweet_create)
     session.commit()
-    session.refresh(media_f)
-    return {"result": True,
-            "media_id": media_f.id}
+    session.refresh(tweet_create)
+
+    return {"result": True, "tweet_id": tweet_create.id}
 
 
 @app_router.delete("/tweets/{id}")
@@ -90,8 +126,11 @@ async def tweet_delete(id, session: SessionDep,
     tweet_user_id = session.scalars(select(Tweet.user_id).where(Tweet.id==id)).one()
     if user_id == tweet_user_id:
         media_links = session.scalars(select(Tweet.links).where(Tweet.id==id)).one_or_none()
-        session.exec(delete(Media).where(Media.file_path.in_(media_links)))
-        session.exec(delete(Tweet).where(Tweet.id==id))
+
+        for media_id in media_links:
+            media_id = media_id.split('/')[-1]
+            session.exec(delete(Media).where(Media.id==media_id))
+        session.exec(delete(Tweet).where(Tweet.id == id))
         session.commit()
         return {"result": True}
     else:
@@ -119,53 +158,33 @@ async def tweet_like_delete(id, session: SessionDep,
     return {"result": True}
 
 
-@app_router.post("/users/{id}/follow")
-async def user_follow_add(id: int, session: SessionDep,
-              api_key: Annotated[str | None, Header()] = None) -> dict:
+@app_router.get("/medias/{media_id}",)
+async def media_receive(session: SessionDep, media_id):
+    media = session.execute(select(Media.file_body).where(Media.id==media_id)).one()
+    return Response(content=media.file_body, media_type="image/png")
 
-    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
 
-    follower = Followers(follower_user_id=id,
-                         follower_id=user_id)
+@app_router.post("/medias")
+async def media_add(session: SessionDep,
+                    file: UploadFile | None = None) -> dict:
 
-    session.add(follower)
+    file_name = file.filename
+    file_body = await file.read()
+
+    media_f = Media(file_name=file_name, file_body=file_body)
+    session.add(media_f)
     session.commit()
-    return {"result": True}
-
-
-@app_router.delete("/users/{id}/follow")
-async def user_follow_delete(id, session: SessionDep,
-                             api_key: Annotated[str | None, Header()] = None) -> dict:
-    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
-    session.exec(delete(Followers).where(Followers.follower_user_id==id)\
-                 .where(Followers.follower_id==user_id))
-
-    session.commit()
-
-    return {"result": True}
-
-
-@app_router.get("/users/{id}",
-                response_model=dict[str, Union[UserPublic, Any]])
-async def user_get(id, session: SessionDep):
-    user = session.exec(select(User).where(User.id==id)).one_or_none()
+    session.refresh(media_f)
     return {"result": True,
-            "user": user}
+            "media_id": media_f.id}
 
 
-@app_router.get("/users/")
-def get_users(session: SessionDep) -> list[UserPublic]:
-    users = session.exec(select(User)).all()
-    return users
-
-
-@app_router.post("/users/")
-def create_user(user: UserCreate, session: SessionDep):
-    db_user = User.model_validate(user)
-    session.add(db_user)
+@app_router.delete("/medias/{media_id}",)
+async def media_receive(session: SessionDep, media_id):
+    session.execute(delete(Media).where(Media.id==int(media_id)))
     session.commit()
-    session.refresh(db_user)
-    return db_user
+    return '', 202
+
 
 @app_router.get("/create_db")
 def create_db(session: SessionDep):
@@ -184,14 +203,14 @@ def create_db(session: SessionDep):
     for i in range(2, 5):
         user_id = 1
         content = f"content{i}"
-        tweet = Tweet(user_id=user_id, tweet_data=content)
+        tweet = Tweet(api_key="test_2", tweet_data=content)
         session.add(tweet)
     session.commit()
 
     #create likes
 
-    like1 = Like(user_id=2, tweet_id=2)
-    like2 = Like(user_id=2, tweet_id=3)
+    like1 = Like(api_key="test_2", tweet_id=2)
+    like2 = Like(api_key="test_2", tweet_id=3)
 
     session.add(like1)
     session.add(like2)
