@@ -21,7 +21,11 @@ app_users = APIRouter()
 async def read_item(session: SessionDep, api_key: Annotated[str | None, Header()] = None):
     user = session.scalars(select(User).where(User.api_key == api_key)).one_or_none()
     if user is None:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(status_code=404, detail={
+            "result": False,
+            "error_type": "User",
+            "error_message": "User not found"})
+
     return {"result": True,
             "user": user}
 

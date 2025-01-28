@@ -30,7 +30,9 @@ async def tweets_get(*, session: SessionDep):
 @app_tweets.post("/")
 def tweet_add(tweet: TweetIn, session: SessionDep,
               api_key: Annotated[str | None, Header()] = None):
-    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
+    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one_or_none()
+    if user_id is None:
+        raise HTTPException(status_code=404, detail="User not found")
 
     links = []
     for i in tweet.tweet_media_ids:
@@ -53,7 +55,7 @@ async def tweet_delete(id, session: SessionDep,
 
     user_id = session.scalars(select(User.id).where(User.api_key==api_key)).one_or_none()
     if user_id is None:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(status_code=404, detail="Incorrect User")
 
     tweet_user_id = session.scalars(select(Tweet.user_id).where(Tweet.id==id)).one()
     if user_id == tweet_user_id:
@@ -84,7 +86,9 @@ async def tweet_like_add(id, session: SessionDep,
 @app_tweets.delete("/{id}/likes")
 async def tweet_like_delete(id, session: SessionDep,
                             api_key: Annotated[str | None, Header()] = None) -> dict:
-    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one()
+    user_id = session.scalars(select(User.id).where(User.api_key == api_key)).one_or_none()
+    if user_id is None:
+        raise HTTPException(status_code=404, detail="User not found")
     session.exec(delete(Like).where(Like.tweet_id==id).where(Like.user_id==user_id))
     session.commit()
     return {"result": True}

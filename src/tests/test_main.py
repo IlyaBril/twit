@@ -25,6 +25,20 @@ def test_create_user(client: TestClient):
     }
 
 
+def test_get_user_me(client: TestClient):
+    response = client.get("/api/users/me", headers={"api-key": "test"})
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data == {"result": True,
+                    "user": {
+                        "id": 1,
+                        "name":"name_1",
+                        "followers":[],
+                        "following":[]
+                    }
+                    }
+
 def test_create_user_2(client: TestClient):
     client.post("/api/users", json={'id': 2, "name": "name_1", "api_key": "test_2"})
     response = client.get("/api/users/2")
@@ -42,6 +56,7 @@ def test_create_user_2(client: TestClient):
         }
     }
 
+
 def test_create_tweet_user_1(client: TestClient):
     response = client.post("/api/tweets",
                 headers={"api-key": "test"},
@@ -51,6 +66,7 @@ def test_create_tweet_user_1(client: TestClient):
 
     assert response.status_code == 200
     assert response.json() == {"result": True, "tweet_id": 1}
+
 
 def test_get_tweets(client: TestClient):
     response = client.get("/api/tweets")
@@ -73,8 +89,40 @@ def test_get_tweets(client: TestClient):
                     }
 
 
-def create_like(client: TestClient):
-    response = client.post("/api/tweets/1/likes", json={"api_key": "test"})
+def test_create_like(client: TestClient):
+    response = client.post("/api/tweets/1/likes", headers={"api-key": "test"})
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data == {"result": True}
+
+
+def test_delete_like(client: TestClient):
+    response = client.delete("/api/tweets/1/likes", headers={"api-key": "test"})
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data == {"result": True}
+
+
+def test_delete_tweets(client: TestClient):
+    response = client.delete("/api/tweets/1", headers={"api-key": "test"})
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data == {"result": True}
+
+
+def test_follow_user(client: TestClient):
+    response = client.post("/api/users/2/follow", headers={"api-key": "test"})
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data == {"result": True}
+
+
+def test_unfollow_user(client: TestClient):
+    response = client.delete("/api/users/2/follow", headers={"api-key": "test"})
     data = response.json()
 
     assert response.status_code == 200
