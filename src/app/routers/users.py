@@ -63,8 +63,7 @@ async def user_follow_delete(
 
 @app_users.get("/", response_model=list[UserPublic] | None)
 def get_users(session: SessionDep):
-    users = session.exec(select(User)).all()
-    return users
+    return session.exec(select(User)).all()
 
 
 @app_users.post("/")
