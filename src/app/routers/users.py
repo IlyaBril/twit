@@ -28,7 +28,16 @@ async def read_item(
 
 @app_users.get("/{id}", response_model=dict[str, Union[UserPublic, Any]])
 async def user_get(id, session: SessionDep):
-    user = session.execute(select(User).where(User.id == id)).one_or_none()
+    user = session.scalars(select(User).where(User.id == id)).one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "result": False,
+                "error_type": "User",
+                "error_message": "User not found",
+            },
+        )
     return {"result": True, "user": user}
 
 
