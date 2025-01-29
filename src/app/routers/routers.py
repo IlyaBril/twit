@@ -25,14 +25,4 @@ def create_db(session: SessionDep):
         session.add(tweet)
     session.commit()
 
-    # create likes
-
-    like1 = Like(api_key="test_2", tweet_id=2)
-    like2 = Like(api_key="test_2", tweet_id=3)
-
-    session.add(like1)
-    session.add(like2)
-
-    session.commit()
-
     return {"result": True}
