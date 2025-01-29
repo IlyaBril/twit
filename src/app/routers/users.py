@@ -3,8 +3,7 @@ from typing import Annotated, Any, Union
 from fastapi import APIRouter, Header, HTTPException
 from sqlmodel import delete, select
 
-from app.models.models import (Followers, SessionDep, User, UserCreate,
-                               UserPublic)
+from app.models.models import Followers, SessionDep, User, UserCreate, UserPublic
 
 app_users = APIRouter()
 

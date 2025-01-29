@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.models.models import Like, SessionDep, Tweet, User
+from app.models.models import SessionDep, Tweet, User
 
 app_init = APIRouter()
 

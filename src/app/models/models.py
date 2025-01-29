@@ -1,8 +1,17 @@
 from typing import Annotated, Any, Optional
 
 from fastapi import Depends
-from sqlmodel import (ARRAY, Column, Field, LargeBinary, Relationship, Session,
-                      SQLModel, String, create_engine)
+from sqlmodel import (
+    ARRAY,
+    Column,
+    Field,
+    LargeBinary,
+    Relationship,
+    Session,
+    SQLModel,
+    String,
+    create_engine,
+)
 
 engine = create_engine("postgresql+psycopg2://postgres:postgres@my_db:5432/twit_db")
 

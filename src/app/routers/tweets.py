@@ -3,8 +3,15 @@ from typing import Annotated, Any, Union
 from fastapi import APIRouter, Header, HTTPException
 from sqlmodel import delete, select
 
-from app.models.models import (Like, Media, SessionDep, Tweet, TweetIn,
-                               TweetWithAuthor, User)
+from app.models.models import (
+    Like,
+    Media,
+    SessionDep,
+    Tweet,
+    TweetIn,
+    TweetWithAuthor,
+    User,
+)
 
 app_tweets = APIRouter()
 
