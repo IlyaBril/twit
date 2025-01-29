@@ -1,12 +1,9 @@
 import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import Session, SQLModel, create_engine
 
 from app.main import app
 from app.models.models import get_session
-from sqlmodel import (Session,
-                      create_engine,
-                      SQLModel)
-
-from fastapi.testclient import TestClient
 
 TEST_DB_URL = "postgresql+psycopg2://postgres:postgres@my_db:5432/test_db"
 
@@ -14,6 +11,7 @@ TEST_DB_URL = "postgresql+psycopg2://postgres:postgres@my_db:5432/test_db"
 @pytest.fixture(scope="session")
 def test_engine():
     return create_engine(TEST_DB_URL, echo=True)
+
 
 @pytest.fixture(name="session", scope="session")
 def session_fixture(test_engine):
@@ -33,4 +31,3 @@ def client_fixture(session: Session):
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
-

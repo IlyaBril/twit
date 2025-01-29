@@ -1,20 +1,17 @@
-from fastapi import Request
+import logging
 import os
+from contextlib import asynccontextmanager
 
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-import logging
-from fastapi import FastAPI
 from app.models.models import create_db_and_tables
-
-from app.routers.routers import app_init
-from app.routers.users import app_users
-from app.routers.tweets import app_tweets
 from app.routers.medias import app_medias
-
-from contextlib import asynccontextmanager
+from app.routers.routers import app_init
+from app.routers.tweets import app_tweets
+from app.routers.users import app_users
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +24,7 @@ pictures_directory = os.path.join(root_dir, "templates/pictures")
 
 templates = Jinja2Templates(directory=template_folder)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
@@ -36,10 +34,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(app_init,  prefix="/init")
-app.include_router(app_users,  prefix="/api/users")
-app.include_router(app_tweets,  prefix="/api/tweets")
-app.include_router(app_medias,  prefix="/api/medias")
+app.include_router(app_init, prefix="/init")
+app.include_router(app_users, prefix="/api/users")
+app.include_router(app_tweets, prefix="/api/tweets")
+app.include_router(app_medias, prefix="/api/medias")
 
 app.mount("/templates", StaticFiles(directory=template_folder), name="templates")
 app.mount("/css", StaticFiles(directory=css_directory), name="css")
