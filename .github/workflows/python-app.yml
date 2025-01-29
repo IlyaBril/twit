@@ -22,14 +22,14 @@ jobs:
         if [ -f src/requirements.txt ]; then pip install -r src/requirements.txt; fi
     - name: Test with flake8
       run: |
-        flake8 app
+        flake8 src
     - name: Test with black
       run: |
-        black app
+        black src
     - name: Test with isort
       run: |
-        isort app
+        isort src
     - name: Test with mypy
       run: |
-        mypy app
+        mypy src
 
