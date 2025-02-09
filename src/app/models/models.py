@@ -10,7 +10,7 @@ from sqlmodel import (
     Session,
     SQLModel,
     String,
-    create_engine,
+    create_engine
 )
 
 engine = create_engine("postgresql+psycopg2://postgres:postgres@my_db:5432/twit_db")

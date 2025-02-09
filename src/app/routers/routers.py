@@ -21,7 +21,7 @@ def create_db(session: SessionDep):
 
     for i in range(2, 5):
         content = f"content{i}"
-        tweet = Tweet(api_key="test_2", tweet_data=content)
+        tweet = Tweet(user_id=1, tweet_data=content)
         session.add(tweet)
     session.commit()
 
