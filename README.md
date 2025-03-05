@@ -14,5 +14,5 @@
 - на порту `5432` доступна БД postgres
 
 ## Тесты
-- 
+- docker-compose exec app pytest .
 
